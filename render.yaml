@@ -1,0 +1,10 @@
+# Cấu hình deploy lên Render (gói Free). Render đọc file này khi tạo "Blueprint".
+services:
+  - type: web
+    name: hop-together
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true

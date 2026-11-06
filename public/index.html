@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Hop Together</title>
+<style>
+  :root {
+    --bg: #fbfaf4; --ink: #2340a8; --panel: #fffdf6; --muted: #5b6fae; --accent: #d6334b; --line: rgba(80,130,210,.35);
+    --grid: rgba(80,130,210,.17); --hand: "Segoe Print", "Comic Sans MS", "Patrick Hand", cursive;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: var(--hand); overflow: hidden; touch-action: none; user-select: none; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
+    background-color: var(--bg);
+    background-image: linear-gradient(90deg, transparent 43px, rgba(214,51,75,.45) 43px, rgba(214,51,75,.45) 45px, transparent 45px),
+      linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 100% 100%, 16px 16px, 16px 16px; }
+  .hidden { display: none !important; }
+  .card { background: var(--panel); border: 2.5px solid var(--ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 24px 28px; width: min(540px, 100%); max-height: 100%; overflow: auto; box-shadow: 3px 4px 0 rgba(35,64,168,.25);
+    transform: rotate(-0.4deg); }
+  h1 { margin: 0 0 4px; font-size: 34px; letter-spacing: 1px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+  input { width: 100%; font: inherit; font-size: 18px; padding: 10px 14px; border: none; border-bottom: 2px dashed var(--ink);
+    border-radius: 0; background: #fff; color: var(--ink); }
+  button { font: inherit; font-weight: 700; font-size: 16px; padding: 10px 18px; border: 2px solid var(--ink);
+    border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px; background: var(--accent); color: #fff; cursor: pointer;
+    box-shadow: 2px 3px 0 var(--ink); }
+  button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  button.ghost { background: #fff; color: var(--ink); }
+  button.sel { background: var(--ink); color: #fff; }
+  .row { display: flex; gap: 10px; margin-top: 12px; }
+  .row input { flex: 1; }
+  .players { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+  .chip { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 2px solid var(--ink);
+    border-radius: 999px; background: #fff; font-weight: 600; }
+  .dot { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); }
+  .levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 10px 0 16px; }
+  .levels button { box-shadow: 2px 2px 0 var(--ink); font-size: 14px; padding: 8px; text-align: left; }
+  .urls { background: #fff; border: 2px dashed var(--line); border-radius: 10px; padding: 8px 12px; font-family: Consolas, monospace;
+    font-size: 15px; word-break: break-all; }
+  .help { color: var(--muted); font-size: 14px; line-height: 1.6; margin-top: 14px; }
+  kbd { background: #fff; border: 1px solid var(--ink); border-bottom-width: 3px; border-radius: 5px; padding: 0 6px;
+    font-family: inherit; font-size: 12px; color: var(--ink); }
+  #touch { position: fixed; inset: auto 0 0 0; display: flex; justify-content: space-between; padding: 16px; pointer-events: none; }
+  #touch .grp { display: flex; gap: 14px; pointer-events: auto; }
+  #touch button { width: 72px; height: 72px; border-radius: 50%; font-size: 26px; opacity: .75; padding: 0; }
+  #votePanel { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) rotate(-0.5deg); width: min(640px, calc(100% - 32px));
+    background: var(--panel); border: 2.5px solid var(--ink); padding: 12px 16px; display: grid; gap: 10px; text-align: center;
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: 3px 4px 0 rgba(35,64,168,.25); }
+  #voteList { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  #voteList button { display: flex; align-items: center; gap: 6px; font-size: 15px; padding: 6px 12px; }
+  .help-card { width: min(680px, 100%); }
+  .help-card h3 { margin: 16px 0 6px; font-size: 17px; }
+  .help-card ul { margin: 0; padding-left: 20px; line-height: 1.6; }
+  .keys { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .keys th { text-align: left; color: var(--accent); font-size: 14px; padding: 2px 6px; }
+  .keys td { padding: 4px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+  .keys td:not(:first-child) { font-weight: 700; white-space: nowrap; }
+  #helpScreen { background-color: rgba(251, 250, 244, .94); }
+  #chatWrap { position: fixed; left: 12px; bottom: 12px; width: min(380px, calc(100% - 24px)); z-index: 20; pointer-events: none; }
+  #chatLog { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 14px; padding: 4px 2px; }
+  #chatLog.open { pointer-events: auto; background: rgba(251,250,244,.92); border: 1.5px dashed var(--ink); border-radius: 8px; padding: 6px 8px; }
+  .chat-row { background: rgba(255,253,246,.88); padding: 1px 6px; border-radius: 6px; width: fit-content; max-width: 100%;
+    overflow-wrap: anywhere; transition: opacity .6s; color: var(--ink); }
+  .chat-row.old { opacity: 0; }
+  #chatLog.open .chat-row.old { opacity: .75; }
+  #chatBox { pointer-events: auto; margin-top: 4px; }
+  #chatBox input { font-size: 15px; padding: 6px 10px; background: var(--panel); border: 2px solid var(--ink); border-radius: 8px; }
+  #topbtns { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; }
+  #topbtns button { font-size: 13px; padding: 6px 10px; box-shadow: 2px 2px 0 var(--ink); }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="topbtns" class="hidden">
+  <button class="ghost" id="btnChat" title="Chat (Enter)">💬 Chat</button>
+  <button class="ghost" id="btnHelp" title="Hướng dẫn (H)">❓ Hướng dẫn</button>
+  <button class="ghost" id="btnP2b" title="Thêm/bỏ người chơi thứ 2 trên máy này">➕ Người chơi 2</button>
+  <button class="ghost" id="btnRestart" title="Chơi lại (R)">↻ Chơi lại</button>
+  <button class="ghost hidden" id="btnMenu" title="Về phòng chờ (Esc)">☰ Phòng chờ</button>
+</div>
+
+<div id="touch" class="hidden">
+  <div class="grp"><button data-k="l">◀</button><button data-k="r">▶</button></div>
+  <div class="grp"><button data-k="k">👋</button><button data-k="g">✋</button><button data-k="f">💨</button><button data-k="d">⤓</button><button data-k="j">⤒</button></div>
+</div>
+<div id="touchEmo" class="hidden" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px">
+  <button class="ghost" data-n="0" style="padding:4px 8px;font-size:13px">Ê!</button>
+  <button class="ghost" data-n="1" style="padding:4px 8px;font-size:13px">Đỡ tao!</button>
+  <button class="ghost" data-n="2" style="padding:4px 8px;font-size:13px">Ngu à?</button>
+  <button class="ghost" data-n="3" style="padding:4px 8px;font-size:13px">😂</button>
+</div>
+
+<div class="overlay" id="joinScreen">
+  <div class="card">
+    <h1>HOP <span>TOGETHER</span></h1>
+    <p class="sub">Giải đố cùng nhau (và chơi khăm nhau) qua LAN · 2–10 người</p>
+    <label for="name">Tên của bạn</label>
+    <div class="row"><input id="name" maxlength="14" placeholder="Nhập tên..." autocomplete="off"></div>
+    <div class="row"><button id="btnCreate" style="flex:1">➕ Tạo phòng mới</button></div>
+    <div class="row">
+      <input id="roomCode" maxlength="4" placeholder="Mã phòng (VD: ABCD)" autocomplete="off" style="text-transform:uppercase">
+      <button id="btnJoin" class="ghost">Vào phòng</button>
+    </div>
+    <p id="joinErr" class="sub hidden" style="color:var(--accent);margin:8px 0 0"></p>
+    <div style="margin-top:16px"><b>Phòng đang mở trong mạng:</b></div>
+    <div class="levels" id="roomList"><span class="sub">Chưa có phòng nào.</span></div>
+    <div class="help">
+      Mục tiêu: cả đội lấy <b>chìa khóa</b>, mở <b>cửa</b> rồi <b>tất cả</b> cùng vào cửa.<br>
+      Có thể đứng lên đầu nhau, đẩy khối nặng cùng nhau, giữ công tắc cho bạn đi qua.
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="lobbyScreen">
+  <div class="card">
+    <h1>Phòng <span id="roomTitle">----</span></h1>
+    <p class="sub">Gửi link mời cho bạn bè cùng mạng (hoặc đọc mã phòng):</p>
+    <div class="urls" id="urls"></div>
+    <div class="row" style="margin-top:8px"><button class="ghost" id="btnCopy">📋 Sao chép link mời</button></div>
+    <div class="players" id="lobbyPlayers"></div>
+    <div class="row" style="margin:0 0 6px;flex-wrap:wrap">
+      <button class="ghost" id="btnAcc">🎲 Đổi phụ kiện</button>
+      <button class="ghost" id="btnP2">➕ Thêm người chơi 2 (cùng máy)</button>
+    </div>
+    <p id="p2help" class="help hidden" style="margin:0 0 14px">
+      <b>P1:</b> <kbd>A</kbd><kbd>D</kbd> đi · <kbd>W</kbd>/<kbd>Space</kbd> nhảy · <kbd>S</kbd> cửa · <kbd>F</kbd> xì hơi · <kbd>G</kbd> bế · <kbd>T</kbd> tát<br>
+      <b>P2:</b> <kbd>←</kbd><kbd>→</kbd> đi · <kbd>↑</kbd> nhảy · <kbd>↓</kbd> cửa · <kbd>.</kbd> xì hơi · <kbd>,</kbd> bế · <kbd>/</kbd> tát
+    </p>
+    <div id="hostPanel" class="hidden">
+      <b>Chọn màn bắt đầu:</b>
+      <div class="levels" id="levelList"></div>
+      <button id="btnStart" style="width:100%">▶ Bắt đầu</button>
+    </div>
+    <p id="waitHost" class="sub hidden" style="margin:0">Đang chờ chủ phòng bắt đầu...</p>
+    <div class="help">
+      <kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> di chuyển ·
+      <kbd>↑</kbd> <kbd>W</kbd> <kbd>Space</kbd> nhảy ·
+      <kbd>↓</kbd> <kbd>S</kbd> vào/ra cửa ·
+      <kbd>F</kbd> xì hơi 💨 (thổi bay người phía sau) · <kbd>G</kbd> bế / ném đồng đội hoặc vỏ chuối ·
+      <kbd>T</kbd> tát 👋 · <kbd>1</kbd>–<kbd>4</kbd> biểu cảm · <kbd>Enter</kbd> chat ·
+      nhảy lên đầu người cầm chìa để <b>cướp</b> ·
+      <kbd>R</kbd> chơi lại màn · <kbd>Esc</kbd> về phòng chờ (chủ phòng)
+    </div>
+  </div>
+</div>
+
+<div id="votePanel" class="hidden">
+  <b>🔨 Ai mới là thủ phạm thật? <span style="color:var(--accent)">(<span id="voteLeft">3</span>s)</span></b>
+  <div id="voteList"></div>
+</div>
+
+<div id="chatWrap" class="hidden">
+  <div id="chatLog"></div>
+  <div id="chatBox" class="hidden">
+    <input id="chatInput" maxlength="120" placeholder="Nhập tin nhắn rồi Enter (Esc để huỷ)..." autocomplete="off">
+  </div>
+</div>
+
+<div class="overlay hidden" id="helpScreen">
+  <div class="card help-card">
+    <h1>Hướng <span>dẫn</span></h1>
+    <p class="sub">Bấm <kbd>H</kbd> hoặc <kbd>Esc</kbd> để đóng. Game vẫn chạy phía sau đấy, cẩn thận!</p>
+    <h3>✏️ Phím điều khiển</h3>
+    <table class="keys">
+      <thead><tr><th></th><th id="hcP1">Một người</th><th id="hcP2" class="hidden">Người chơi 2</th></tr></thead>
+      <tbody>
+        <tr><td>Đi</td><td data-solo="← → / A D" data-p1="A D"></td><td class="p2col">← →</td></tr>
+        <tr><td>Nhảy (giữ để nhảy cao)</td><td data-solo="↑ / W / Space" data-p1="W / Space"></td><td class="p2col">↑</td></tr>
+        <tr><td>Vào / ra cửa</td><td data-solo="↓ / S" data-p1="S"></td><td class="p2col">↓</td></tr>
+        <tr><td>Xì hơi 💨</td><td data-solo="F / E" data-p1="F / E"></td><td class="p2col">. (Shift phải)</td></tr>
+        <tr><td>Bế / ném người, nhặt / ném chuối</td><td data-solo="G" data-p1="G"></td><td class="p2col">,</td></tr>
+        <tr><td>Tát 👋</td><td data-solo="T" data-p1="T"></td><td class="p2col">/</td></tr>
+        <tr><td>Chat</td><td data-solo="Enter" data-p1="Enter"></td><td class="p2col">—</td></tr>
+        <tr><td>Biểu cảm</td><td data-solo="1 2 3 4" data-p1="1 2 3 4"></td><td class="p2col">—</td></tr>
+        <tr><td>Chơi lại màn</td><td data-solo="R" data-p1="R"></td><td class="p2col">—</td></tr>
+        <tr><td>Về phòng chờ (chủ phòng)</td><td data-solo="Esc" data-p1="Esc"></td><td class="p2col">—</td></tr>
+      </tbody>
+    </table>
+    <h3>🎯 Mục tiêu</h3>
+    <ul>
+      <li>Lấy <b>chìa khóa</b> 🔑, mang chạm vào <b>cửa thật</b> để mở, rồi <b>tất cả</b> đứng ở cửa bấm nút vào cửa.</li>
+      <li>Cả team phải ở chung một khung hình. Một đứa chết là cả team chơi lại, rồi <b>bỏ phiếu 3 giây</b> xem ai có tội.</li>
+    </ul>
+    <h3>🧱 Đồ vật trong màn</h3>
+    <ul>
+      <li><b>Khối nặng</b>: số trên khối là số người còn thiếu để đẩy. <b>Thang máy</b>: đủ người đứng lên mới chạy.</li>
+      <li><b>Công tắc</b> mở <b>cổng</b> cùng màu khi có người hoặc khối đè lên.</li>
+      <li><b>Lò xo</b> nảy bay cao · <b>Vỏ chuối</b> 🍌 trượt dài · <b>Ớt</b> 🌶️ cắm đầu chạy 3 giây.</li>
+      <li><b>Chim</b> ỉa trúng đầu: ngược phím 5 giây · <b>Đá lăn</b> 🪨: chạy đi!</li>
+      <li>Bẫy troll: <b>sàn giả</b>, <b>gai ẩn</b>, <b>chìa giả</b> bỏ chạy, <b>cửa giả</b> nhổ người ra.</li>
+    </ul>
+    <h3>🤡 Chơi khăm</h3>
+    <ul>
+      <li>Nhảy lên đầu người cầm chìa để <b>cướp chìa</b>. Xì hơi trúng người cầm chìa thì họ làm rơi chìa.</li>
+      <li>Ai xì hơi / ném / tát làm người khác chết thì kẻ đó bị nghi có tội.</li>
+      <li>Mỗi màn có một <b>lời nguyền</b> ngẫu nhiên, thỉnh thoảng cả team bị <b>đổi xác</b> 10 giây.</li>
+    </ul>
+    <button id="btnHelpClose" style="width:100%;margin-top:8px">Hiểu rồi, chơi tiếp!</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="msgScreen">
+  <div class="card" style="text-align:center">
+    <h1 id="msgTitle">Mất kết nối</h1>
+    <p class="sub" id="msgText">Không kết nối được tới máy chủ.</p>
+    <button onclick="location.reload()">Tải lại</button>
+  </div>
+</div>
+
+<script src="client.js"></script>
+</body>
+</html>

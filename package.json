@@ -1,0 +1,14 @@
+{
+  "name": "hop-together",
+  "version": "1.0.0",
+  "description": "Game giải đố hợp tác bựa, chơi nhiều người qua trình duyệt",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
